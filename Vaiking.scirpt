@@ -1,0 +1,61 @@
+local player = game.Players.LocalPlayer
+local event = game.ReplicatedStorage:WaitForChild("CombatEvent")
+local UIS = game:GetService("UserInputService")
+
+local combo = 1
+local auto = false
+local autoDelay = 0.4 -- speed control
+
+-- GUI (same as yours, no change needed)
+
+-- FIND TARGET (same as yours)
+local function getNearestTarget()
+	local char = player.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+
+	local closest = nil
+	local dist = math.huge
+
+	for _, v in pairs(workspace:GetChildren()) do
+		if v:IsA("Model") and v ~= char then
+			local hum = v:FindFirstChild("Humanoid")
+			local root = v:FindFirstChild("HumanoidRootPart")
+
+			if hum and root and hum.Health > 0 then
+				local d = (root.Position - char.HumanoidRootPart.Position).Magnitude
+				if d < dist and d < 20 then
+					dist = d
+					closest = root
+				end
+			end
+		end
+	end
+
+	return closest
+end
+
+-- AUTO ATTACK LOOP (FIXED)
+task.spawn(function()
+	while true do
+		if auto then
+			local target = getNearestTarget()
+
+			if target then
+				event:FireServer("Attack", combo, target)
+
+				combo += 1
+				if combo > 3 then
+					combo = 1
+				end
+			end
+		end
+
+		task.wait(autoDelay)
+	end
+end)
+
+-- BUTTON
+autoBtn.MouseButton1Click:Connect(function()
+	auto = not auto
+	autoBtn.Text = "Auto Attack: " .. (auto and "ON" or "OFF")
+end)
