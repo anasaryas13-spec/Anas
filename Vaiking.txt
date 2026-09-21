@@ -1,0 +1,36 @@
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+
+local attackEvent = RS:WaitForChild("AttackEvent")
+
+local MAX_DISTANCE = 10
+
+attackEvent.OnServerEvent:Connect(function(player, combo)
+
+	combo = math.clamp(combo or 1, 1, 3)
+
+	local char = player.Character
+	if not char then return end
+
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	for _, v in pairs(workspace:GetChildren()) do
+		if v:IsA("Model")
+			and v:FindFirstChildOfClass("Humanoid")
+			and v:FindFirstChild("HumanoidRootPart")
+			and not Players:GetPlayerFromCharacter(v) then
+
+			local hum = v:FindFirstChildOfClass("Humanoid")
+			local enemyRoot = v:FindFirstChild("HumanoidRootPart")
+
+			if hum.Health > 0 then
+				local distance = (root.Position - enemyRoot.Position).Magnitude
+
+				if distance <= MAX_DISTANCE then
+					hum:TakeDamage(10 * combo)
+				end
+			end
+		end
+	end
+end)
