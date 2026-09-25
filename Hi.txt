@@ -1,0 +1,13 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local event = Instance.new("RemoteEvent")
+event.Name = "AttackEvent"
+event.Parent = ReplicatedStorage
+
+event.OnServerEvent:Connect(function(player, combo)
+	local char = player.Character
+	if not char then return end
+	
+	print(player.Name .. " used combo " .. combo)
+	-- add damage logic here
+end)
