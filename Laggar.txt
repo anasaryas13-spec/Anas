@@ -1,0 +1,21 @@
+local function insta_reset()
+    if insta_reset_cooldown or not reset_remote then return end
+
+    insta_reset_cooldown = true
+    local old_char = local_player.Character
+    if not old_char then
+        insta_reset_cooldown = false
+        return
+    end
+
+    task.spawn(function()
+        repeat
+            pcall(function()
+                reset_remote:FireServer(GUID, local_player, "balloon")
+            end)
+            task.wait(0.1)
+        until local_player.Character ~= old_char
+
+        insta_reset_cooldown = false
+    end)
+end
